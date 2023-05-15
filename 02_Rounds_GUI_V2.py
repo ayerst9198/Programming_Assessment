@@ -81,7 +81,7 @@ class Rounds:
                 return response
 
         except ValueError:
-            self.rounds_error.config(text=error,fg="#9C0000")
+            self.rounds_error.config(text=error, fg="#9C0000")
 
     def rounds_check(self):
         self.check_rounds(1, 113)
