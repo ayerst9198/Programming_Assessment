@@ -1,14 +1,13 @@
 from tkinter import *
 from functools import partial  # To prevent unwanted windows
-import pandas
 
 
 class Rounds:
 
-    def __init__(self, root):
+    def __init__(self):
 
         # Set up GUI Frame
-        self.rounds_frame = Frame(root, padx=10, pady=10)
+        self.rounds_frame = Frame(padx=10, pady=10)
         self.rounds_frame.grid()
 
         self.rounds_heading = Label(self.rounds_frame,
@@ -29,7 +28,7 @@ class Rounds:
                                   fg="#9C0000", font="bold")
         self.rounds_error.grid(row=3)
 
-        self.start_frame = Frame(self.rounds_frame, padx=10, pady=10)
+        self.start_frame = Frame(padx=10, pady=10)
         self.start_frame.grid()
 
         self.entry_rounds_frame = Entry(self.start_frame,
@@ -45,12 +44,12 @@ class Rounds:
         self.button_frame = Frame(self.rounds_frame)
         self.button_frame.grid(row=5)
 
-        self.help_button = Button(self.button_frame, width=12, text="Help",
+        self.help_button = Button(self.start_frame, width=12, text="Help",
                                   bg="#FFCC99", font=("Arial", "12", "bold"),
                                   command=self.to_help)
         self.help_button.grid(row=5, column=0, padx=10, pady=10)
 
-        self.statistics_button = Button(self.button_frame, width=12, text="Statistics",
+        self.statistics_button = Button(self.start_frame, width=12, text="Statistics",
                                         bg="#CCE5FF", font=("Arial", "12", "bold"))
         self.statistics_button.grid(row=5, column=1, padx=10, pady=10)
 
@@ -71,113 +70,27 @@ class Rounds:
             self.rounds_error.config(text=error, fg="#9C0000")
 
     def rounds_check(self):
-        num_rounds = self.check_rounds(1, 113)
-        if num_rounds:
-            self.to_play(num_rounds)
+        self.check_rounds(1, 113)
 
     def to_help(self):
         DisplayHelp(self)
 
-    def to_play(self, num_rounds):
-        self.play_box = Toplevel()
-        Quiz(self.play_box, num_rounds)
-
-        # hide root window (i.e., hide rounds choice window).
-        root.withdraw()
-
-
-class Quiz:
-
-    def __init__(self, play_box, num_rounds):
-        self.play_box = play_box
-
-        # if users press the cross at the top, closes help and
-        # releases help button
-        self.play_box.protocol('WM_DELETE_WINDOW',
-                               partial(self.close_play))
-
-        # Variables used to work out statistics when game ends etc
-        self.rounds_wanted = IntVar()
-        self.rounds_wanted.set(num_rounds)
-
-        # Initially set rounds played and won to 0
-        self.rounds_played = IntVar()
-        self.rounds_played.set(0)
-
-        self.rounds_won = IntVar()
-        self.rounds_won.set(0)
-        # Set up GUI Frame
-        self.rounds_frame = Frame(self.play_box, padx=10, pady=10)
-        self.rounds_frame.grid()
-
-        self.rounds_heading = Label(self.rounds_frame,
-                                    text="Round {} of {}".format(self.rounds_played, self.rounds_wanted),
-                                    font=("Arial", "30", "bold",)
-                                    )
-        self.rounds_heading.grid(row=0)
-
-        instructions = "QUESTION GOES HERE"
-
-        self.rounds_instructions = Label(self.rounds_frame,
-                                         text=instructions,
-                                         wraplength=300, width=60,
-                                         justify="left", font="11")
-        self.rounds_instructions.grid(row=1, pady=10)
-
-        self.start_frame = Frame(self.rounds_frame, padx=10, pady=10)
-        self.start_frame.grid(row=1)
-
-        self.buttons = []
-
-        # Create buttons using a loop
-        for i in range(4):
-            button = Button(self.start_frame, width=15, height=2, text=f"ANS {i + 1}",
-                            font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF")
-            button.grid(row=i // 2 + 2, column=i % 2, pady=5, padx=10)
-            self.buttons.append(button)
-
-        # help and statistics and next buttons
-        self.button_frame = Frame(self.play_box, padx=10, pady=10)
-        self.button_frame.grid(row=4)
-
-        self.help_button = Button(self.button_frame, width=12, text="Help",
-                                  bg="#FFCC99", font=("Arial", "12", "bold"),
-                                  command=self.to_help)
-        self.help_button.grid(row=4, column=0, padx=10, pady=10)
-
-        self.statistics_button = Button(self.button_frame, width=12, text="Statistics",
-                                        bg="#CCE5FF", font=("Arial", "12", "bold"))
-        self.statistics_button.grid(row=4, column=1, padx=10, pady=10)
-
-        self.next_button = Button(self.button_frame, width=16, text="Next Round",
-                                  bg="#D5E8D4", font=("Arial", "12", "bold"))
-        self.next_button.grid(row=4, column=2, padx=10, pady=10)
-
-    def close_play(self):
-        # reshow root (i.e., choose rounds) and end current
-        # game / allow new game to start
-        root.deiconify()
-        self.play_box.destroy()
-
-    def to_help(self):
-        DisplayHelp(self.play_box)
-
 
 class DisplayHelp:
 
-    def __init__(self, play_box):
+    def __init__(self, partner):
         # setup dialogue box and background colour
         background = "#ffe6cc"
 
-        self.help_box = Toplevel(play_box)
+        self.help_box = Toplevel()
 
         # disable help button
-        play_box.help_button.config(state=DISABLED)
+        partner.help_button.config(state=DISABLED)
 
         # if users press cross at top, closes help and
         # releases help button
         self.help_box.protocol('WM_DELETE_WINDOW',
-                               partial(self.close_help, play_box))
+                               partial(self.close_help, partner))
 
         self.help_frame = Frame(self.help_box, width=300, height=200,
                                 bg=background)
@@ -208,13 +121,13 @@ class DisplayHelp:
                                      text="Dismiss", bg="#CC6600",
                                      fg="#FFFFFF",
                                      command=partial(self.close_help,
-                                                     play_box))
+                                                     partner))
         self.dismiss_button.grid(row=2, padx=10, pady=10)
 
     # closes help dialogue (used by button and x at top of dialogue
-    def close_help(self, play_box):
+    def close_help(self, partner):
         # Put help button back to normal...
-        play_box.help_button.config(state=NORMAL)
+        partner.help_button.config(state=NORMAL)
         self.help_box.destroy()
 
 
