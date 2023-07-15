@@ -134,30 +134,25 @@ class Quiz:
         self.buttons = []
 
         # Create buttons using a loop
-
         right = random.randint(1, 4)
-        count = 1
         button_names = ["1", "2", "3", "4"]
-        for item in range(0, 4):
-            if right != count:
-
+        for item, button_name in enumerate(button_names):
+            if right != (item + 1):
                 self.button_phobia = self.get_round_colours()
-                text = self.button_phobia[count-1][1]
+                text = self.button_phobia[item][1]
                 self.button = Button(self.question_frame, width=15, height=2, text=text,
-                                     font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150)
+                                     font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150,
+                                     command=lambda name=button_name: self.button_press(name))
                 self.button.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
                 self.buttons.append(self.button)
             else:
-
                 self.button_phobia = self.get_round_colours()
                 text = answer
                 self.button_correct = Button(self.question_frame, width=15, height=2, text=text,
                                              font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150,
-                                             command=lambda i=item: self.button_press(button_names))
+                                             command=lambda name=button_name: self.button_press(name))
                 self.button_correct.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
                 self.buttons.append(self.button_correct)
-            print(answer, "\n", right, "\n", question)
-            count += 1
 
         self.quiz_frame = Frame(self.play_box, padx=10, pady=10)
         self.quiz_frame.grid()
@@ -176,19 +171,27 @@ class Quiz:
         self.statistics_button.grid(row=4, column=1, padx=10, pady=10)
 
         self.next_button = Button(self.button_frame, width=16, text="Next Round",
-                                  bg="#D5E8D4", font=("Arial", "12", "bold"))
+                                  bg="#D5E8D4", font=("Arial", "12", "bold"),
+                                  command=self.next_round)
         self.next_button.grid(row=4, column=2, padx=10, pady=10)
 
-    def button_press(self, action):
+    def button_press(self, button_name):
+        # Disable all buttons
+        for button in self.buttons:
+            button.config(state=DISABLED)
 
-        if action == "4":
-            self.button_correct.config(state=DISABLED)
-            self.button.config(state=DISABLED)
-            self.button_correct.config(bg="#008000")
-            return
-        else:
-            self.button_correct.config(state=DISABLED)
-            self.button.config(state=DISABLED)
+        # Find the correct answer button and change its color to green
+        correct_answer = self.button_question[0][1]
+        for button in self.buttons:
+            if button.cget("text") == correct_answer:
+                button.config(bg="#008000")  # Green color
+
+        # Find the pressed button and change its color to red if incorrect
+        for button in self.buttons:
+            if button.cget("text") == button_name:
+                if button.cget("text") != correct_answer:
+                    button.config(bg="#FF0000")  # Red color
+                break
 
     def get_list(self):
         file = open("fear_list_csv.csv", "r")
@@ -201,7 +204,7 @@ class Quiz:
         round_colour_list = []
         color_scores = []
 
-        # get six unique colours
+        # get four unique colours
         while len(round_colour_list) < 4:
             # choose item
             chosen_colour = random.choice(self.all_questions)
@@ -218,7 +221,7 @@ class Quiz:
         return round_colour_list
 
     def close_play(self):
-        # reshow root (ie: choose rounds) and end current
+        # reshow root (i.e., choose rounds) and end current
         # game / allow new game to start
         root.deiconify()
         self.play_box.destroy()
@@ -226,100 +229,26 @@ class Quiz:
     def to_help(self):
         DisplayHelp(self)
 
-    def to_compare(self, user_choice):
-
-        how_many = self.rounds_wanted.get()
-
-        # Add one to number of rounds played
-        current_round = self.rounds_played.get()
-        current_round += 1
-        self.rounds_played.set(current_round)
-
-        self.to_stats_btn.config(state=NORMAL)
-
-        # deactivate colour buttons!
-        for item in self.choice_button_ref:
-            item.config(state=DISABLED)
-
-        # set up background colours...
-        win_colour = "#D5E8D4"
-        lose_colour = "#F8CECC"
-
-        # retrieve user score, make it into an integer
-        # and add to list for stats
-        user_score_current = int(user_choice[1])
-        self.user_scores.append(user_score_current)
-
-        # remove user choice from button colours list
-        to_remove = self.button_colours_list.index(user_choice)
-        self.button_colours_list.pop(to_remove)
-
-        # get computer choice and add to list for stats
-        # when getting score, change it to an integer before
-        # appending
-        comp_choice = random.choice(self.button_colours_list)
-        comp_score_current = int(comp_choice[1])
-
-        self.computer_scores.append(comp_score_current)
-        comp_announce = "The computer " \
-                        "chose {}".format(comp_choice[0])
-
-        self.comp_choice_label.config(text=comp_announce,
-                                      bg=comp_choice[0],
-                                      fg=comp_choice[2])
-
-        # get colours and show results!
-        if user_score_current > comp_score_current:
-            round_results_bg = win_colour
+    def next_round(self):
+        rounds_played = self.rounds_played.get()
+        rounds_wanted = self.rounds_wanted.get()
+        if rounds_played < rounds_wanted:
+            rounds_played += 1
+            self.rounds_played.set(rounds_played)
+            self.rounds_heading.config(text="Round {} of {}".format(rounds_played, rounds_wanted))
+            self.button_question = self.get_round_colours()
+            question = self.button_question[0][0]
+            answer = self.button_question[0][1]
+            self.rounds_instructions.config(text="{} is the fear of what?".format(question))
+            count = 1
+            for button in self.buttons:
+                if button.cget("text") != answer:
+                    button.config(text=self.button_question[count][1])
+                    count += 1
+                else:
+                    button.config(text=answer, command=lambda: self.button_press(button.cget("text")))
         else:
-            round_results_bg = lose_colour
-
-        rounds_outcome_txt = "Round {}: User {} \t" \
-                             "Computer: {}".format(current_round,
-                                                   user_score_current,
-                                                   comp_score_current)
-
-        self.rounds_results_label.config(bg=round_results_bg,
-                                         text=rounds_outcome_txt)
-
-        # get total scores for user and computer...
-        user_total = sum(self.user_scores)
-        comp_total = sum(self.computer_scores)
-
-        if user_total > comp_total:
-            self.game_results_label.config(bg=win_colour)
-            status = "You Win!"
-        else:
-            self.game_results_label.config(bg=lose_colour)
-            status = "You Lose!"
-
-        game_outcome_txt = "Total Score: User: {} \t" \
-                           "Computer: {}".format(user_total,
-                                                 comp_total)
-        self.game_results_label.config(text=game_outcome_txt)
-
-        # if the game is over, disable all buttons
-        # and change text of 'next' button to either
-        # 'You Win' or 'You Lose' and disable all buttons
-
-        if current_round == how_many:
-            # Change 'next' button to show overall
-            # win / lose result and disable it
-            self.next_button.config(state=DISABLED,
-                                    text=status)
-
-            # update start over button
-            start_over_button = self.control_button_ref[2]
-            start_over_button['text'] = "Play Again"
-            start_over_button['bg'] = "#009900"
-
-            # change all colour buttons background to light grey
-            for item in self.choice_button_ref:
-                item['bg'] = "#C0C0C0"
-
-        else:
-            # enable next round button and update heading
-            self.next_button.config(state=NORMAL)
+            self.next_button.config(state=DISABLED)
 
 
 class DisplayHelp:
@@ -370,7 +299,7 @@ class DisplayHelp:
                                                      partner))
         self.dismiss_button.grid(row=2, padx=10, pady=10)
 
-    # closes help dialogue (used by button and x at top of dialogue
+    # closes help dialogue (used by button and x at top of dialogue)
     def close_help(self, partner):
         # Put help button back to normal...
         partner.help_button.config(state=NORMAL)

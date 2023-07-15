@@ -1,8 +1,8 @@
 from tkinter import *
+from tkinter.constants import DISABLED
 from functools import partial  # To prevent unwanted windows
 import csv
 import random
-
 
 class Rounds:
 
@@ -134,30 +134,37 @@ class Quiz:
         self.buttons = []
 
         # Create buttons using a loop
-
         right = random.randint(1, 4)
-        count = 1
         button_names = ["1", "2", "3", "4"]
-        for item in range(0, 4):
-            if right != count:
-
+        for item in range(len(button_names)):
+            if right != (item + 1):
                 self.button_phobia = self.get_round_colours()
-                text = self.button_phobia[count-1][1]
-                self.button = Button(self.question_frame, width=15, height=2, text=text,
-                                     font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150)
-                self.button.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
-                self.buttons.append(self.button)
+                text = self.button_phobia[item][1]
+                button = Button(self.question_frame, width=15, height=2, text=text,
+                                font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150)
+                button.config(command=lambda b=button: self.check_answer(b, text))  # Modified command
+                button.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
+                self.buttons.append(button)
             else:
-
                 self.button_phobia = self.get_round_colours()
                 text = answer
-                self.button_correct = Button(self.question_frame, width=15, height=2, text=text,
-                                             font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150,
-                                             command=lambda i=item: self.button_press(button_names))
-                self.button_correct.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
-                self.buttons.append(self.button_correct)
-            print(answer, "\n", right, "\n", question)
-            count += 1
+                button = Button(self.question_frame, width=15, height=2, text=text,
+                                font=("Arial", "12", "bold",), bg="#484770", fg="#FFFFFF", wraplength=150)
+                button.config(command=lambda b=button: self.check_answer(b, text))  # Modified command
+                button.grid(row=item // 2 + 2, column=item % 2, pady=5, padx=10)
+                self.buttons.append(button)
+
+        self.correct_answers = 0
+        self.incorrect_answers = 0
+
+        self.score_frame = Frame(self.play_box, padx=10, pady=10)
+        self.score_frame.grid(row=3)
+
+        self.correct_label = Label(self.score_frame, text="Correct: 0", font=("Arial", "12", "bold"))
+        self.correct_label.grid(row=0, column=0, padx=5)
+
+        self.incorrect_label = Label(self.score_frame, text="Incorrect: 0", font=("Arial", "12", "bold"))
+        self.incorrect_label.grid(row=0, column=1, padx=5)
 
         self.quiz_frame = Frame(self.play_box, padx=10, pady=10)
         self.quiz_frame.grid()
@@ -176,19 +183,89 @@ class Quiz:
         self.statistics_button.grid(row=4, column=1, padx=10, pady=10)
 
         self.next_button = Button(self.button_frame, width=16, text="Next Round",
-                                  bg="#D5E8D4", font=("Arial", "12", "bold"))
+                                  bg="#D5E8D4", font=("Arial", "12", "bold"),
+                                  command=self.next_round)
         self.next_button.grid(row=4, column=2, padx=10, pady=10)
 
-    def button_press(self, action):
+    def close_play(self):
+        # reshow root (i.e., choose rounds) and end current
+        # game / allow new game to start
+        root.deiconify()
+        self.play_box.destroy()
 
-        if action == "4":
-            self.button_correct.config(state=DISABLED)
-            self.button.config(state=DISABLED)
-            self.button_correct.config(bg="#008000")
-            return
+    def to_help(self):
+        DisplayHelp(self)
+
+    def check_answer(self, button, button_name):
+        # Disable all buttons
+        for btn in self.buttons:
+            btn.config(state=DISABLED)
+
+        # Find the correct answer button and change its color to green
+        correct_answer = self.button_question[0][1]
+        correct_button = None
+        for btn in self.buttons:
+            if btn.cget("text") == correct_answer:
+                correct_button = btn
+                break
+
+        # Change the color of the selected button to red if incorrect
+        if button.cget("text") != correct_answer:
+            button.config(bg="#FF0000")  # Red color
+            self.correct_answers += 1
+            self.correct_label.config(text="Correct: {}".format(self.correct_answers))
         else:
-            self.button_correct.config(state=DISABLED)
-            self.button.config(state=DISABLED)
+            button.config(bg="#008000")  # Green color
+            # Update the score counters
+            self.incorrect_answers += 1
+            self.incorrect_label.config(text="Incorrect: {}".format(self.incorrect_answers))
+
+        # Change the color of the correct answer button to green
+        if correct_button is not None:
+            correct_button.config(bg="#008000")  # Green color
+
+        # Enable the next button
+        self.next_button.config(state=NORMAL)
+
+    def next_round(self):
+        self.rounds_played.set(self.rounds_played.get() + 1)
+        if self.rounds_played.get() >= self.rounds_wanted.get():
+            self.play_box.destroy()
+            root.deiconify()
+        else:
+            self.rounds_heading.config(text="Round {} of {}".format(self.rounds_played.get() + 1, self.rounds_wanted.get()))
+            self.generate_new_question()
+
+    def generate_new_question(self):
+        count = 0
+        self.button_question = self.get_round_colours()
+        question = self.button_question[count][0]
+        answer = self.button_question[count][1]
+        count += 1
+
+        instructions = "{} is the fear of what?".format(question)
+        self.rounds_instructions.config(text=instructions)
+
+        # Enable all buttons
+        for btn in self.buttons:
+            btn.config(state=NORMAL)
+
+        # Reset button colors
+        for btn in self.buttons:
+            btn.config(bg="#484770")
+
+        # Assign new answers to buttons
+        right = random.randint(1, 4)
+        button_names = ["1", "2", "3", "4"]
+        for i, btn in enumerate(self.buttons):
+            if right != (i + 1):
+                self.button_phobia = self.get_round_colours()
+                text = self.button_phobia[i][1]
+                btn.config(text=text)
+            else:
+                self.button_phobia = self.get_round_colours()
+                text = answer
+                btn.config(text=text)
 
     def get_list(self):
         file = open("fear_list_csv.csv", "r")
@@ -201,125 +278,22 @@ class Quiz:
         round_colour_list = []
         color_scores = []
 
-        # get six unique colours
+        # Get four unique colours
         while len(round_colour_list) < 4:
-            # choose item
+            # Read from the CSV file if all questions have been used
+            if not self.all_questions:
+                self.all_questions = self.get_list()
+
             chosen_colour = random.choice(self.all_questions)
             index_chosen = self.all_questions.index(chosen_colour)
 
-            # check score is not already in list
             if chosen_colour[1] not in color_scores:
-                # add item to rounds list
                 round_colour_list.append(chosen_colour)
                 color_scores.append(chosen_colour[1])
 
-                # remove item from master list
                 self.all_questions.pop(index_chosen)
+
         return round_colour_list
-
-    def close_play(self):
-        # reshow root (ie: choose rounds) and end current
-        # game / allow new game to start
-        root.deiconify()
-        self.play_box.destroy()
-
-    def to_help(self):
-        DisplayHelp(self)
-
-    def to_compare(self, user_choice):
-
-        how_many = self.rounds_wanted.get()
-
-        # Add one to number of rounds played
-        current_round = self.rounds_played.get()
-        current_round += 1
-        self.rounds_played.set(current_round)
-
-        self.to_stats_btn.config(state=NORMAL)
-
-        # deactivate colour buttons!
-        for item in self.choice_button_ref:
-            item.config(state=DISABLED)
-
-        # set up background colours...
-        win_colour = "#D5E8D4"
-        lose_colour = "#F8CECC"
-
-        # retrieve user score, make it into an integer
-        # and add to list for stats
-        user_score_current = int(user_choice[1])
-        self.user_scores.append(user_score_current)
-
-        # remove user choice from button colours list
-        to_remove = self.button_colours_list.index(user_choice)
-        self.button_colours_list.pop(to_remove)
-
-        # get computer choice and add to list for stats
-        # when getting score, change it to an integer before
-        # appending
-        comp_choice = random.choice(self.button_colours_list)
-        comp_score_current = int(comp_choice[1])
-
-        self.computer_scores.append(comp_score_current)
-        comp_announce = "The computer " \
-                        "chose {}".format(comp_choice[0])
-
-        self.comp_choice_label.config(text=comp_announce,
-                                      bg=comp_choice[0],
-                                      fg=comp_choice[2])
-
-        # get colours and show results!
-        if user_score_current > comp_score_current:
-            round_results_bg = win_colour
-        else:
-            round_results_bg = lose_colour
-
-        rounds_outcome_txt = "Round {}: User {} \t" \
-                             "Computer: {}".format(current_round,
-                                                   user_score_current,
-                                                   comp_score_current)
-
-        self.rounds_results_label.config(bg=round_results_bg,
-                                         text=rounds_outcome_txt)
-
-        # get total scores for user and computer...
-        user_total = sum(self.user_scores)
-        comp_total = sum(self.computer_scores)
-
-        if user_total > comp_total:
-            self.game_results_label.config(bg=win_colour)
-            status = "You Win!"
-        else:
-            self.game_results_label.config(bg=lose_colour)
-            status = "You Lose!"
-
-        game_outcome_txt = "Total Score: User: {} \t" \
-                           "Computer: {}".format(user_total,
-                                                 comp_total)
-        self.game_results_label.config(text=game_outcome_txt)
-
-        # if the game is over, disable all buttons
-        # and change text of 'next' button to either
-        # 'You Win' or 'You Lose' and disable all buttons
-
-        if current_round == how_many:
-            # Change 'next' button to show overall
-            # win / lose result and disable it
-            self.next_button.config(state=DISABLED,
-                                    text=status)
-
-            # update start over button
-            start_over_button = self.control_button_ref[2]
-            start_over_button['text'] = "Play Again"
-            start_over_button['bg'] = "#009900"
-
-            # change all colour buttons background to light grey
-            for item in self.choice_button_ref:
-                item['bg'] = "#C0C0C0"
-
-        else:
-            # enable next round button and update heading
-            self.next_button.config(state=NORMAL)
 
 
 class DisplayHelp:
@@ -370,7 +344,7 @@ class DisplayHelp:
                                                      partner))
         self.dismiss_button.grid(row=2, padx=10, pady=10)
 
-    # closes help dialogue (used by button and x at top of dialogue
+    # closes help dialogue (used by button and x at top of dialogue)
     def close_help(self, partner):
         # Put help button back to normal...
         partner.help_button.config(state=NORMAL)
