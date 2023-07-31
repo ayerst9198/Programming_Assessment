@@ -223,6 +223,7 @@ class Quiz:
                                         bg="#CCE5FF", font=("Arial", "12", "bold"),
                                         command=self.to_statistics)
         self.statistics_button.grid(row=4, column=1, padx=10, pady=10)
+        self.statistics_button.config(state=DISABLED)
 
         # next round button starts out as disabled to prevent the user to press next round
         # without answering
@@ -259,6 +260,7 @@ class Quiz:
     def check_answer(self, button):
         # Enable next round button
         self.next_button.config(state=NORMAL)
+        self.statistics_button.config(state=NORMAL)
         # Disable all buttons
         for btn in self.buttons:
             btn.config(state=DISABLED)
